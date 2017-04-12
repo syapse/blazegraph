@@ -4976,7 +4976,7 @@ public class RWStore implements IStore, IBufferedWriter, IBackingReader {
             	}
 
 	        	try {
-	        	    if(readOnly) {
+	        	    if(readOnly || true) {
 	        	        asyncChannel = AsynchronousFileChannel.open(path, StandardOpenOption.READ);
 	        	    } else {
 	                    asyncChannel = AsynchronousFileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE);
@@ -5039,7 +5039,7 @@ public class RWStore implements IStore, IBufferedWriter, IBackingReader {
                 }
 
                 // open the file.
-                this.raf = new RandomAccessFile(file, mode);
+                this.raf = new RandomAccessFile(file, "r");
 
                 // Update counters.
                 final StoreCounters<?> c = (StoreCounters<?>) storeCounters
