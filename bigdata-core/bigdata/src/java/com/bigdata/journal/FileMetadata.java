@@ -1192,7 +1192,7 @@ public class FileMetadata {
 		}
 
 		// open the file.
-		this.raf = new RandomAccessFile(file, fileMode);
+		this.raf = new RandomAccessFile(file, "r");
 
 		if (INFO)
 			log.info("(Re-)opened file: " + file);
@@ -1205,7 +1205,7 @@ public class FileMetadata {
 				 * Request a shared file lock.
 				 */
 
-				final boolean readOnly = "r".equals(fileMode);
+				final boolean readOnly = "r".equals(fileMode) || true;
 
 				if (raf.getChannel().tryLock(0, Long.MAX_VALUE, readOnly/* shared */) == null) {
 

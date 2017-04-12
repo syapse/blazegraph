@@ -4878,7 +4878,7 @@ public class RWStore implements IStore, IBufferedWriter, IBackingReader {
                 }
 
                 // open the file.
-                this.raf = new RandomAccessFile(file, mode);
+                this.raf = new RandomAccessFile(file, "r");
 
                 // Update counters.
                 final StoreCounters<?> c = (StoreCounters<?>) storeCounters
