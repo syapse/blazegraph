@@ -2376,6 +2376,10 @@ public class RWStore implements IStore, IBufferedWriter, IBackingReader {
                 freeBlob(addr, sze, context);
             } else {
                 final FixedAllocator alloc = getBlockByAddress(addr);
+                if (alloc == null) {
+                    log.warn("Bad argument to free(" + Long.toString(laddr) + ", " + sze + ")");
+                    return;
+                }
                 
                 /*
                  * There are a few conditions here. If the context owns the
@@ -2784,6 +2788,7 @@ public class RWStore implements IStore, IBufferedWriter, IBackingReader {
 							/*
 							 * We need a new allocator.
 							 */
+                                if (size < this.cSmallSlot) log.warn("New small fixed allocator: " + m_allocs.size());
 	                        allocator = new FixedAllocator(this, block);
 	                        
 	                        allocator.setFreeList(list);
@@ -2804,6 +2809,7 @@ public class RWStore implements IStore, IBufferedWriter, IBackingReader {
                         	addToCommit(allocator);
                         }
                     } else {
+                        if (size < this.cSmallSlot) log.warn("Free fixed allocator");
                         // Verify free list only has allocators with free bits
                         if (log.isDebugEnabled()){
                             int tsti = 0;
@@ -2822,6 +2828,8 @@ public class RWStore implements IStore, IBufferedWriter, IBackingReader {
                 }
                 
                 final int addr = allocator.alloc(this, size, context);
+
+                if (size < this.cSmallSlot) log.warn("Allocated: " + addr + " from: " + allocator.getSummaryStats());
                 
                 if (addr == 0) {
                 	throw new IllegalStateException("Free Allocator unable to allocate address: " + allocator.getSummaryStats());
@@ -2838,6 +2846,7 @@ public class RWStore implements IStore, IBufferedWriter, IBackingReader {
                     throw new IllegalStateException(
                             "No physical address found for " + addr);
                 }
+                if (size < this.cSmallSlot) log.warn("Allocated: " + addr + " to physical address: " + Long.toString(pa));
 
                 m_allocations++;
                 m_nativeAllocBytes += size;
@@ -2957,6 +2966,7 @@ public class RWStore implements IStore, IBufferedWriter, IBackingReader {
             final IAllocationContext context) {
 
         m_allocationWriteLock.lock();
+        log.warn("alloc(" + size + ")");
         try {
         	checkContext(context);
         	
@@ -4467,6 +4477,7 @@ public class RWStore implements IStore, IBufferedWriter, IBackingReader {
          * public.
          */
         final Lock lock = m_allocationReadLock;
+        long result = 0;
         
         lock.lock();
 
@@ -4474,7 +4485,7 @@ public class RWStore implements IStore, IBufferedWriter, IBackingReader {
 
             if (addr >= 0) {
         		
-                return addr & 0xFFFFFFE0;
+                result = addr & 0xFFFFFFE0;
 
             } else {
 
@@ -4488,7 +4499,7 @@ public class RWStore implements IStore, IBufferedWriter, IBackingReader {
                 final long laddr = allocator
                         .getPhysicalAddress(offset, nocheck);
 
-                return laddr;
+                result = laddr;
             }
             
         } finally {
@@ -4496,6 +4507,13 @@ public class RWStore implements IStore, IBufferedWriter, IBackingReader {
             lock.unlock();
             
         }
+        if (result == 0x7FFFFFE0) {
+            Exception e = new Exception("no error - just stacktrace");
+            e.fillInStackTrace();
+            log.error("physicalAddress(" + addr + ") = " + Long.toString(result), e);
+        }
+
+        return result;
 
     }
     

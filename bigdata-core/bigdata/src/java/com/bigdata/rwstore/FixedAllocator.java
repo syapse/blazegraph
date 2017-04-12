@@ -1064,6 +1064,7 @@ public class FixedAllocator implements Allocator {
 		
 		// Note +3 for address teak for special low order bits
 		final int addr = -((m_index << RWStore.OFFSET_BITS) + (m_allocIndex*32) + (bit + 3));
+                if (bit == 1 || addr > 0) log.warn("Alloc: m_index = " + m_index + " m_allocIndex = " + m_allocIndex + " addr = " + addr);
 		
 		// Now check current index
 		if (ab.m_transients[abblock] == 0xFFFFFFFF) {
