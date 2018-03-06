@@ -6,7 +6,7 @@ replicaCount: 1
 
 image:
   repository: 141380700111.dkr.ecr.us-west-2.amazonaws.com/blazegraph
-  tag: latest
+  tag: newrelic
   pullPolicy: Always
 
 persistence:
@@ -30,6 +30,17 @@ ingress:
   #  - secretName: chart-example-tls
   #    hosts:
   #      - chart-example.local
+
+#apps_sparql_async_server <- Analytic??
+analytic:
+  enabled: true
+  sparql_async_server: false
+
+java_ops:
+  memory: 1024
+
+newrelic:
+  enabled: true
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious

@@ -23,6 +23,16 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+          {{- if .Values.newrelic.enabled }}
+            - name: NEW_RELIC_LICENSE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ template "blazegraph.fullname" . }}-newrelic
+                  key: key
+            - name: JAVA_OPTIONS
+              value: "-javaagent:/var/lib/jetty/lib/newrelic/newrelic.jar -Dnewrelic.config.license_key=${LICENSE_KEY}"
+          {{- end }}
           ports:
             - name: http
               containerPort: 8080
