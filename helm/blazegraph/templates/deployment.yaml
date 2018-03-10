@@ -31,7 +31,7 @@ spec:
                   name: {{ template "blazegraph.fullname" . }}-newrelic
                   key: key
             - name: JAVA_OPTIONS
-              value: "-javaagent:/var/lib/jetty/lib/newrelic/newrelic.jar -Dnewrelic.config.license_key=${LICENSE_KEY}"
+              value: "-javaagent:/var/lib/jetty/lib/newrelic/newrelic.jar -Dnewrelic.config.license_key=${LICENSE_KEY} -Dcom.bigdata.rdf.sail.webapp.ConfigParams.propertyFile=/etc/blazegraph/RWStore.properties"
           {{- end }}
           ports:
             - name: http
@@ -41,27 +41,40 @@ spec:
             httpGet:
               path: /blazegraph/#splash
               port: http
+            initialDelaySeconds: 120
           readinessProbe:
             httpGet:
               path: /blazegraph/#splash
               port: http
+            initialDelaySeconds: 30
           resources:
 {{ toYaml .Values.resources | indent 12 }}
           volumeMounts:
-          - name: data
-            mountPath: /var/lib/blazegraph
-            subPath: data
-          - name: data
-            mountPath: /etc/blazegraph
-            subPath: config
+            - name: data
+              mountPath: /var/lib/blazegraph
+            - name: environment-config
+              mountPath: /etc/blazegraph/blazegraph
+              subPath: environment
+            - name: rwstore-config
+              mountPath: /etc/blazegraph/RWStore.properties
+              subPath: rwstore
+      securityContext:
+        fsGroup: 101
       volumes:
-      - name: data
-      {{- if .Values.persistence.enabled }}
-        persistentVolumeClaim:
-          claimName: {{ .Values.persistence.existingClaim | default (include "blazegraph.fullname" .) }}
-      {{- else }}
-        emptyDir: {}
-      {{- end -}}
+        - name: environment-config
+          configMap:
+            name: {{ template "blazegraph.fullname" . }}-environment
+        - name: rwstore-config
+          configMap:
+            name: {{ template "blazegraph.fullname" . }}-rwstore
+        - name: data
+          mode: 420
+        {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim | default (include "blazegraph.fullname" .) }}
+        {{- else }}
+          emptyDir: {}
+        {{- end -}}
     {{- with .Values.nodeSelector }}
       nodeSelector:
 {{ toYaml . | indent 8 }}
