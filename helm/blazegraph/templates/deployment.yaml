@@ -1,0 +1,95 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: {{ template "blazegraph.fullname" . }}
+  labels:
+    app: {{ template "blazegraph.name" . }}
+    chart: {{ template "blazegraph.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ template "blazegraph.name" . }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "blazegraph.name" . }}
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+          {{- if .Values.newrelic.enabled }}
+            - name: NEW_RELIC_LICENSE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ template "blazegraph.fullname" . }}-newrelic
+                  key: key
+          {{- end }}
+            - name: NEW_RELIC_OPS
+              {{- if .Values.newrelic.enabled }}
+              value: -javaagent:/var/lib/jetty/lib/newrelic/newrelic.jar -Dnewrelic.config.license_key=${NEW_RELIC_LICENSE_KEY}
+              {{- else }}
+              value: ""
+              {{- end }}
+            - name: JAVA_OPTIONS
+              value: "${NEW_RELIC_OPS} -Dcom.bigdata.rdf.sail.webapp.ConfigParams.propertyFile=/etc/blazegraph/RWStore.properties"
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /blazegraph/#splash
+              port: http
+            initialDelaySeconds: 120
+          readinessProbe:
+            httpGet:
+              path: /blazegraph/#splash
+              port: http
+            initialDelaySeconds: 30
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/blazegraph
+            - name: environment-config
+              mountPath: /etc/blazegraph/blazegraph
+              subPath: environment
+            - name: rwstore-config
+              mountPath: /etc/blazegraph/RWStore.properties
+              subPath: rwstore
+      securityContext:
+        fsGroup: 101
+      volumes:
+        - name: environment-config
+          configMap:
+            name: {{ template "blazegraph.fullname" . }}-environment
+        - name: rwstore-config
+          configMap:
+            name: {{ template "blazegraph.fullname" . }}-rwstore
+        - name: data
+          mode: 420
+        {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim | default (include "blazegraph.fullname" .) }}
+        {{- else }}
+          emptyDir: {}
+        {{- end -}}
+    {{- with .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}

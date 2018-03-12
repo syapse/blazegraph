@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "blazegraph.fullname" . }}-environment
+  labels:
+    app: {{ template "blazegraph.name" . }}
+    chart: {{ template "blazegraph.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  environment: |-
+    # Blazegraph environment variables
+
+    NAME=blazegraph
+    BLZG_HOME=/usr/share/${NAME}
+    BLZG_CONF=/etc/blazegraph
+    BLZG_LOG=/var/log/${NAME}
+    BLZG_DATA=/var/lib/${NAME}
+    # Run Blazegraph as this user ID and group ID
+    BLZG_USER=blazegraph
+    BLZG_GROUP=blazegraph
+    JETTY_XML="${BLZG_CONF}"/jetty.xml
+    JETTY_RESOURCE_BASE="${BLZG_HOME}"/war/
+    # Blazegraph requires us to set the host one way
+    # and the listen port another way. We provide these
+    # variables as a way of smoothing over that.
+    JETTY_HOST=localhost
+    JETTY_PORT=2333
+    LOGGING_CONFIG="${BLZG_CONF}"/logging.properties
+    LOG4J_CONFIG="${BLZG_CONF}"/log4j.properties
+    NSS="com.bigdata.rdf.sail.webapp.NanoSparqlServer"
+    NSS_NAMESPACE="kb"
+    NSS_PROPERTIES="${BLZG_CONF}"/RWStore.properties
+
+    JVM_OPTS="-Dorg.eclipse.jetty.server.Request.maxFormContentSize=2000000000
+              -XX:+UseG1GC
+              -XX:+UseStringDeduplication
+              -Xloggc:/var/log/blazegraph/gc.txt -verbose:gc
+              -XX:+PrintGCDetails -XX:+PrintGCDateStamps
+              -XX:+PrintGCTimeStamps -XX:+UseGCLogFileRotation
+              -XX:NumberOfGCLogFiles=10
+              -XX:GCLogFileSize=5M
+              -Djetty.host=$JETTY_HOST
+              -Dhttp.timeout=300000
+              -server"
+
+    {{- if .Values.analytic.enabled }} # Conditionally enable Analytic Mode for Blazegraph
+    {{- if .Values.analytic.sparql_async_server }}
+
+    JVM_OPTS="$JVM_OPTS
+              -Djetty.start.timeout=300
+              -Dcom.bigdata.rdf.sparql.ast.QueryHints.analytic=true
+              -Xms{{ div .Values.java_ops.memory 4 }}k
+              -Xmx{{ div .Values.java_ops.memory 4 }}k
+              -XX:MaxDirectMemorySize={{ sub .Values.java_ops.memory ( div .Values.java_ops.memory 4 ) }}k"
+    {{- else }}
+    JVM_OPTS="$JVM_OPTS
+              -Xms{{ div .Values.java_ops.memory 2 }}k
+              -Xmx{{ .Values.java_ops.memory }}k"
+    {{- end }}
+
+    EXTRA_CLASSPATH=$(find /usr/local/lib/blazegraph -name '*.jar' -print0 | tr '\0' ':')
+
+    {{- if .Values.sentry_dsn }}
+    export SENTRY_DSN={{ .Values.sentry_dsn }}
+    {{- end }}
+    {{- end }}
