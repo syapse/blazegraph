@@ -6,7 +6,7 @@ replicaCount: 1
 
 image:
   repository: 141380700111.dkr.ecr.us-west-2.amazonaws.com/blazegraph
-  tag: newrelic
+  tag: latest
   pullPolicy: Always
 
 persistence:
