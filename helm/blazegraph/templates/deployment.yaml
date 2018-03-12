@@ -30,9 +30,15 @@ spec:
                 secretKeyRef:
                   name: {{ template "blazegraph.fullname" . }}-newrelic
                   key: key
-            - name: JAVA_OPTIONS
-              value: "-javaagent:/var/lib/jetty/lib/newrelic/newrelic.jar -Dnewrelic.config.license_key=${LICENSE_KEY} -Dcom.bigdata.rdf.sail.webapp.ConfigParams.propertyFile=/etc/blazegraph/RWStore.properties"
           {{- end }}
+            - name: NEW_RELIC_OPS
+              {{- if .Values.newrelic.enabled }}
+              value: -javaagent:/var/lib/jetty/lib/newrelic/newrelic.jar -Dnewrelic.config.license_key=${NEW_RELIC_LICENSE_KEY}
+              {{- else }}
+              value: ""
+              {{- end }}
+            - name: JAVA_OPTIONS
+              value: "${NEW_RELIC_OPS} -Dcom.bigdata.rdf.sail.webapp.ConfigParams.propertyFile=/etc/blazegraph/RWStore.properties"
           ports:
             - name: http
               containerPort: 8080
