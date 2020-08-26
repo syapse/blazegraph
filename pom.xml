@@ -223,7 +223,7 @@ Copyright 2010 by TalkingTrends (Amsterdam, The Netherlands)
     <highscalelib.version>1.1.2</highscalelib.version>
     <log4j.version>1.2.17</log4j.version>
     <colt.version>${project.version}</colt.version>
-    <fastutil.version>6.5.16</fastutil.version>
+    <fastutil.version>6.6.5</fastutil.version>
     <lgplutils.version>1.0.7-270114</lgplutils.version>
     <bigdata.ganglia.version>1.0.4</bigdata.ganglia.version>
     <jackson.version>2.2.3</jackson.version>
